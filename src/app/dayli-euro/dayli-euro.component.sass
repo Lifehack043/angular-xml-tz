@@ -1,0 +1,89 @@
+// .container,.title,.form,.form-label,.form-link,.form-button,.form-cur,.subtitle,.links,.links-path
+*
+  display: flex
+  flex-direction: column
+  font-size: 16px
+
+.container
+  box-sizing: border-box
+  justify-items: center
+  min-height: 600px
+  max-width: 900px
+  padding: 20px
+  height: 100%
+  width: 100%
+
+.subtitle,
+.title
+  font-weight: 600
+
+.title
+  font-size: 32px
+  margin-bottom: 30px
+
+.subtitle
+  font-size: 24px
+  margin-bottom: 20px
+
+.form
+  background: #f1f1f1
+  border-radius: 4px
+  margin-bottom: 30px
+  padding: 20px
+
+// .title
+
+// .form
+
+// .form-label
+
+.form-button,
+.form-input
+  box-sizing: border-box
+  max-width: 300px
+  height: 40px
+  width: 100%
+
+.form-input
+  height: 40px
+  border-radius: 2px
+  border: 1px solid #cccc
+  margin: 10px 0 20px
+  padding: 0 20px
+
+.form-button
+  background: brown
+  border-radius: 2px
+  color: #fff
+  cursor: pointer
+  margin-bottom: 20px
+  justify-content: center
+  align-items: center
+
+.form-curs
+  align-items: center
+  flex-direction: row
+  font-weight: 900
+
+  span
+    color: cadetblue
+    display: inline-flex
+    margin-left: 10px
+
+// .subtitle
+
+.links
+  counter-reset: counter
+  list-style: none
+
+.links-path
+  align-items: flex-start
+  counter-increment: counter
+  display: inline-flex
+  flex-direction: row
+  position: relative
+  white-space: pre-wrap
+
+  &::before
+    content: counter(counter) ". "
+    display: inline-flex

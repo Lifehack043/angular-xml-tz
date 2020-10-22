@@ -1,0 +1,24 @@
+<div class="container">
+
+  <h1 class="title">Get curs EURO</h1>
+
+  <div class="form">
+    <label class="form-label">Add requests path<br>
+      <input #uri placeholder="path" class="form-input" />
+    </label>
+
+    <button class="form-button" (click)="add(uri.value); uri.value=''">
+      Add path
+    </button>
+    <p *ngIf="cursValute" class="form-curs">CURS EURO:
+      <span>{{cursValute.Value}} €</span></p>
+  </div>
+
+  <h2 class="subtitle">Requests</h2>
+  <div class="links" *ngIf="reqs.length">
+    <div *ngFor="let req of reqs" class="links-path">
+      <span>{{req}}</span>
+    </div>
+  </div>
+
+</div>
