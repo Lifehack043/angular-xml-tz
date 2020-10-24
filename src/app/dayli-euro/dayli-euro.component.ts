@@ -36,6 +36,7 @@ export class DayliEuroComponent implements OnInit {
     }, 10000);
   }
 
+  //  перенести логику ниже в компонент
   public add(req: string) {
     if (!req) { return; }
     this.newPath(req);
