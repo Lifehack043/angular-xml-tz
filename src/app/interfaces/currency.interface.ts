@@ -1,4 +1,4 @@
-export interface Valute {
+export interface Currency {
   Id?: string;
   Value?: number|string;
 }
