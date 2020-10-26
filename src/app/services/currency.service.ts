@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
 import { Currency } from '../interfaces/currency.interface';
+import { RequestService } from '../services/requests.service';
 import { catchError, tap } from 'rxjs/operators';
 import { parseString } from 'xml2js';
 
@@ -11,10 +12,15 @@ let requestOptions: Object = {
 }
 
 @Injectable({ providedIn: 'root' })
-export class CurrencyService {
+export class CurrencyService{
+  public reqText : any;
+  public currencyValue : Currency;
 
   constructor(
-    private http: HttpClient) { }
+    private http: HttpClient,
+    private RequestService: RequestService
+    ) {
+  }
 
   getValue (uri): Observable<Currency>  {
     return this.http.get<Currency>(uri, requestOptions)
@@ -25,9 +31,9 @@ export class CurrencyService {
   }
 
   public getEuroValue() {
-    for (let i = 0; i < this.defaultReq.length; i++) {
+    for (let i = 0; i < this.RequestService.requests.length; i++) {
       try {
-        const _xhr = this.DailyEuroService.getValue(this.defaultReq[i])
+        const _xhr = this.getValue(this.RequestService.requests[i])
           .subscribe(_res => {
             this.reqText = _res;
             this.setEuroValue(_res);
@@ -35,7 +41,7 @@ export class CurrencyService {
           });
         return;
       } catch {
-        console.log(`No interner connection: ${this.defaultReq[i]}`);
+        console.log(`No interner connection: ${this.RequestService.requests[i]}`);
       }
     }
   }
@@ -88,8 +94,7 @@ export class CurrencyService {
     }
 
 
-    console.log(_ID, _VAL);
-    this.cursCurrency = <Currency> {
+    this.currencyValue = <Currency> {
       Value: _VAL,
       Id: _ID,
     };

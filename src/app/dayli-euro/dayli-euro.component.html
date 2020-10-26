@@ -10,8 +10,11 @@
     <button class="form-button" (click)="add(uri.value); uri.value=''">
       Add path
     </button>
-    <!-- <p *ngIf="cursCurrency" class="form-curs">CURS EURO:
-      <span>{{cursCurrency.Value}} €</span></p> -->
+    <pre>
+      {{cursCurrency}}
+    </pre>
+    <p *ngIf="cursCurrency" class="form-curs">CURS EURO:
+      <span>{{cursCurrency.Value}} €</span></p>
   </div>
 
   <h2 class="subtitle">Requests</h2>

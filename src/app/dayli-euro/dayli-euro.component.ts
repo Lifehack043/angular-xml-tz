@@ -17,17 +17,16 @@ export class DayliEuroComponent implements OnInit {
   ) {}
 
   public reqs = this.RequestService.requests;
-  public reqText : any;
-  public cursCurrency : Currency;
+  public cursCurrency = this.DailyEuroService.currencyValue;
 
-
+  // : void
   async ngOnInit() {
-    await this.RequestService.getAllReqs();
-
-    // this.DailyEuroService.getEuroValue();
-    // setInterval(() => {
-    //   this.DailyEuroService.getEuroValue();
-    // }, 10000);
+    this.RequestService.getAllReqs();
+    await this.DailyEuroService.getEuroValue();
+    setInterval(() => {
+      this.cursCurrency = this.DailyEuroService.currencyValue;
+      this.DailyEuroService.getEuroValue();
+    }, 10000);
   }
 
   public add(req: string) {
