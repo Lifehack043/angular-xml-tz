@@ -1,129 +1,147 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, of } from 'rxjs';
-import { Currency } from '../interfaces/currency.interface';
-import { RequestService } from '../services/requests.service';
-import { catchError, tap } from 'rxjs/operators';
-import { parseString } from 'xml2js';
+import { Observable, timer } from 'rxjs';
+import { ICurrencyMap } from '../interfaces/interface';
+import { catchError, map, switchMap } from 'rxjs/operators';
+import { at, keyBy  } from 'lodash';
+import { xml2js } from 'xml-js';
 
+interface ICurrencyUris {
+  [key: number]: ICurrencyUri;
+}
 
-let requestOptions: Object = {
-  responseType: 'text'
+interface ICurrencyUri {
+  responseType: 'json' | 'xml';
+  uri: string;
+  uriOptions?: object;
+  mapping?: {
+    rootPath: string
+    currency?: {
+      ID?: string
+      NumCode: string
+      CharCode: string
+      Nominal: string
+      Name: string
+      Value: string
+      Previous?: string
+    }
+  };
 }
 
 @Injectable({ providedIn: 'root' })
-export class CurrencyService{
-  public reqText : any;
-  public currencyValue : Currency;
+export class CurrencyService {
+  private sourceMapping: ICurrencyUris = {
+    0: {
+      responseType: 'json',
+      uri: 'https://httpstat.us/500'
+    },
+    1: {
+      responseType: 'json',
+      uri: 'https://httpstat.us/400'
+    },
+    2: {
+      responseType: 'json',
+      uri: 'https://www.cbr-xml-daily.ru/daily_json.js',
+      mapping: {
+        rootPath: 'Valute'
+      }
+    },
+    3: {
+      responseType: 'xml',
+      uri: 'https://www.cbr-xml-daily.ru/daily_utf8.xml',
+      uriOptions: {
+        responseType: 'text'
+      },
+      mapping: {
+        rootPath: 'ValCurs.Valute',
+        currency: {
+          NumCode: 'NumCode._text',
+          CharCode: 'CharCode._text',
+          Nominal: 'Nominal._text',
+          Name: 'Name._text',
+          Value: 'Value._text',
+        }
+      }
+    }
+  };
 
-  constructor(
-    private http: HttpClient,
-    private RequestService: RequestService
-    ) {
+  private currentSource = 0;
+
+  constructor(private http: HttpClient) {}
+
+  get sourceSettings(): ICurrencyUri {
+    return this.sourceMapping[this.currentSource];
   }
 
-  getValue (uri): Observable<Currency>  {
-    return this.http.get<Currency>(uri, requestOptions)
+  getCurrencies(): Observable < ICurrencyMap >  {
+    return this.requestObserver()
       .pipe(
-        tap(_ => this.log('All good!')),
-        catchError(this.handleError<any>('getEuroValue'))
+        map(this.buildCurrencies.bind(this))
       );
   }
 
-  public getEuroValue() {
-    for (let i = 0; i < this.RequestService.requests.length; i++) {
-      try {
-        const _xhr = this.getValue(this.RequestService.requests[i])
-          .subscribe(_res => {
-            this.reqText = _res;
-            this.setEuroValue(_res);
-            _xhr.unsubscribe();
-          });
-        return;
-      } catch {
-        console.log(`No interner connection: ${this.RequestService.requests[i]}`);
-      }
+  getCurrenciesTimer(interval = 10000): Observable < ICurrencyMap > {
+    return timer(0, interval).pipe(
+      switchMap(this.getCurrencies.bind(this))
+    );
+  }
+
+  private requestObserver(): Observable <any> {
+    const { uri, uriOptions } = this.sourceSettings;
+    return this.http.get(uri, uriOptions).pipe(
+      catchError(this.handleError.bind(this)),
+    );
+  }
+
+  private handleError(err, caught): Observable < any > {
+    this.changeSource();
+    return this.requestObserver.call(this);
+  }
+
+  private changeSource(): void {
+    const count = Object.keys(this.sourceMapping).length;
+    switch (true) {
+      case count > this.currentSource:
+        this.currentSource ++;
+        break;
+      case count < this.currentSource:
+        throw new Error('Закончились урлы');
+        break;
     }
   }
 
-  private setEuroValue(res: any) {
-    let _VAL = null,
-        _ID = null;
-
-    const KEY = "CharCode",
-          Currency = "Value",
-          Currency_NAME = "EUR",
-          Currency_CODE = "NumCode",
-          findEuroValue = (object, key, val) => {
-            Object.keys(object).forEach(k => {
-              if (typeof object[k] === "object") {
-                if (object[k][KEY] === Currency_NAME) {
-                  _ID = object[k][Currency_CODE];
-                  _VAL = object[k][Currency];
-                  return;
-                }
-                findEuroValue(object[k], key, val);
-              }
-            });
-          }
-
-    if (!this.isJson(res)) {
-      parseString(res, {
-        explicitArray: false,
-        ignoreAttrs: true
-      }, (error, result) => {
-        if (error) {
-          throw new Error(error);
-        } else {
-          res = result;
-        }
-      });
-    } else {
-      res = JSON.parse(res);
+  private buildCurrencies(response): ICurrencyMap {
+    switch (this.sourceSettings.responseType) {
+      case 'xml':
+        return this.normalizeXml.call(this, response);
+      case 'json':
+        return this.normalizeJson.call(this, response);
+      default:
+        break;
     }
-
-    findEuroValue(res, _ID, _VAL);
-
-    if (!_VAL && !_ID) {
-      return;
-    }
-
-    if (typeof _VAL === "string") {
-      _VAL = _VAL.replace(",", ".");
-      _VAL = new Number(_VAL);
-    }
-
-
-    this.currencyValue = <Currency> {
-      Value: _VAL,
-      Id: _ID,
-    };
   }
 
-  private isJson(str) {
-    try {
-      JSON.parse(str);
-    } catch (e) {
-      return false;
-    }
-    return true;
+  private normalizeXml(response): ICurrencyMap {
+    const jsXml = xml2js(response, {compact: true, ignoreAttributes: true});
+    const currencies = at(jsXml, this.sourceSettings.mapping.rootPath)[0];
+    const normalizedMap = keyBy(currencies, this.sourceSettings.mapping.currency.CharCode);
+    return this.mappingCurrencies(normalizedMap);
   }
 
-
-
-  private handleError<T> (result?: T) {
-    return (error: any): Observable<T> => {
-
-      // TODO: send the error to remote logging infrastructure
-      console.error(error); // log to console instead
-
-      // Let the app keep running by returning an empty result.
-      return of(result as T);
-    };
+  private normalizeJson(response): ICurrencyMap {
+    return at(response, this.sourceSettings.mapping.rootPath)[0];
   }
 
-  private log(message: string) {
-    console.log(`DailyEuroService: ${message}`);
+  private mappingCurrencies(response): ICurrencyMap {
+    const currencyMap = Object.keys(response).reduce((memo, currencyKey) => {
+      memo[currencyKey] = Object.keys(this.sourceSettings.mapping.currency).reduce((valueMemo, valueCurrency) => {
+        const path = this.sourceSettings.mapping.currency[valueCurrency];
+        valueMemo[valueCurrency] = at(response[currencyKey], path)[0];
+        return valueMemo;
+      }, {});
+      return memo;
+    }, {});
+    return currencyMap as ICurrencyMap;
   }
 }
 

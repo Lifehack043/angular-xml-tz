@@ -1,35 +1,29 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { CurrencyService } from '../services/currency.service';
-import { RequestService } from '../services/requests.service';
-import { Currency } from '../interfaces/currency.interface';
-
+import { Subscription } from 'rxjs';
+import { IValute } from '../interfaces/interface';
 
 @Component({
   selector: 'app-dayli-euro',
   templateUrl: './dayli-euro.component.html',
   styleUrls: ['./dayli-euro.component.sass']
 })
-export class DayliEuroComponent implements OnInit {
 
+export class DayliEuroComponent implements OnInit, OnDestroy {
+  private cursValute: IValute;
+  private currencyServiceObserver: Subscription;
   constructor(
-    private DailyEuroService: CurrencyService,
-    private RequestService: RequestService
+    private currencyService: CurrencyService
   ) {}
 
-  public reqs = this.RequestService.requests;
-  public cursCurrency = this.DailyEuroService.currencyValue;
-
-  // : void
-  async ngOnInit() {
-    this.RequestService.getAllReqs();
-    await this.DailyEuroService.getEuroValue();
-    setInterval(() => {
-      this.cursCurrency = this.DailyEuroService.currencyValue;
-      this.DailyEuroService.getEuroValue();
-    }, 10000);
+  ngOnInit(): void {
+    this.currencyServiceObserver = this.currencyService.getCurrenciesTimer().subscribe(response => {
+      const { EUR } = response;
+      this.cursValute = EUR;
+    });
   }
 
-  public add(req: string) {
-    this.RequestService.addReq(req);
+  ngOnDestroy(): void {
+    this.currencyServiceObserver.unsubscribe();
   }
 }

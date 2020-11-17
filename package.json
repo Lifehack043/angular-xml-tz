@@ -19,11 +19,13 @@
     "@angular/platform-browser": "~10.1.6",
     "@angular/platform-browser-dynamic": "~10.1.6",
     "@angular/router": "~10.1.6",
+    "@types/lodash": "^4.14.162",
+    "lodash": "^4.17.20",
     "rxjs": "~6.6.0",
     "stream": "0.0.2",
     "timers": "^0.1.1",
     "tslib": "^2.0.0",
-    "xml2js": "^0.4.23",
+    "xml-js": "^1.6.11",
     "zone.js": "~0.10.2"
   },
   "devDependencies": {
